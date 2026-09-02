@@ -58,16 +58,20 @@
   // ---------- めくる音 ----------
 
   /*
-   * 紙をめくる音。音のファイルは置かず、その場で作っている。
+   * 紙をめくる音。
    *
-   * 紙がこすれる音は「ざらざらした音（雑音）を一瞬だけ鳴らして、すっと消す」
-   * ことで作れる。ファイルを持たないので容量が増えず、
-   * よその音源を使わないので権利の心配もない。
+   * 音そのものは、こちらで一から作った docs/flip.wav（19KB）。
+   * よその音源を使っていないので、権利の心配はない。
+   * 作り方は「めくる音のつくりかた.md」に残してある。
    *
-   * かさっと軽い紙の感じにするため、高めの音を短く、2回わずかにずらして鳴らす。
+   * ファイルにしてあるので、どの機種でもまったく同じ音になる。
+   * （ブラウザにその場で音を作らせる方法だと、機種ごとに少し違って聞こえる）
    */
+  var FLIP_SOUND = 'flip.wav?v=1' // 音を差し替えたら、この番号を1つ増やす
+
   var audioCtx = null
-  var noiseBuffer = null
+  var flipBytes = null   // 読み込んだままの音のデータ
+  var flipBuffer = null  // 鳴らせる形にしたもの
   var soundOn = localStorage.getItem(SOUND_KEY) !== 'off' // 何もしなければ音あり
 
   function getAudio() {
@@ -75,56 +79,34 @@
       var AC = window.AudioContext || window.webkitAudioContext
       if (!AC) return null
       try { audioCtx = new AC() } catch (e) { return null }
+      prepareFlip()
     }
     // スマホは「画面をさわった時」でないと音を出せない決まりがある
     if (audioCtx.state === 'suspended' && audioCtx.resume) audioCtx.resume()
     return audioCtx
   }
 
-  function getNoise(ctx) {
-    if (noiseBuffer) return noiseBuffer
-    var len = Math.floor(ctx.sampleRate * 0.4)
-    noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate)
-    var d = noiseBuffer.getChannelData(0)
-    for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1
-    return noiseBuffer
+  function prepareFlip() {
+    if (!audioCtx || !flipBytes || flipBuffer) return
+    try {
+      // decodeAudioData は元のデータを食べてしまうので、写しを渡す
+      audioCtx.decodeAudioData(flipBytes.slice(0), function (buf) { flipBuffer = buf }, function () {})
+    } catch (e) { /* 音が出なくても読むことはできる */ }
   }
 
-  /** 雑音をひとかたまり鳴らす（at 秒後から dur 秒、freq あたりの高さで） */
-  function burst(ctx, at, dur, freq, peak) {
-    var src = ctx.createBufferSource()
-    src.buffer = getNoise(ctx)
-
-    var high = ctx.createBiquadFilter()   // 低い音を落として、紙らしく軽くする
-    high.type = 'highpass'
-    high.frequency.value = 1400
-
-    var band = ctx.createBiquadFilter()   // 「かさ」の芯になる高さ
-    band.type = 'bandpass'
-    band.Q.value = 0.8
-    band.frequency.setValueAtTime(freq, at)
-    band.frequency.exponentialRampToValueAtTime(freq * 0.45, at + dur)
-
-    var gain = ctx.createGain()           // ぱっと出て、すっと消える
-    gain.gain.setValueAtTime(0.0001, at)
-    gain.gain.exponentialRampToValueAtTime(peak, at + 0.010)
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + dur)
-
-    src.connect(high)
-    high.connect(band)
-    band.connect(gain)
-    gain.connect(ctx.destination)
-    src.start(at)
-    src.stop(at + dur + 0.02)
-  }
+  fetch(FLIP_SOUND)
+    .then(function (r) { return r.arrayBuffer() })
+    .then(function (b) { flipBytes = b; prepareFlip() })
+    .catch(function () { /* 音が無くても読むことはできる */ })
 
   function playFlipSound() {
     if (!soundOn) return
     var ctx = getAudio()
-    if (!ctx) return
-    var t = ctx.currentTime
-    burst(ctx, t, 0.14, 3400, 0.14)
-    burst(ctx, t + 0.05, 0.10, 4600, 0.09)
+    if (!ctx || !flipBuffer) return
+    var src = ctx.createBufferSource()
+    src.buffer = flipBuffer
+    src.connect(ctx.destination)
+    src.start()
   }
 
   function setSound(on, preview) {
@@ -246,6 +228,7 @@
     e.preventDefault()
     var pw = el.pw.value
     if (!pw) return
+    getAudio() // ここは画面をさわった直後なので、音の用意を始められる
     el.lockBtn.disabled = true
     el.lockMsg.className = 'msg ok'
     el.lockMsg.textContent = '確かめています…'
