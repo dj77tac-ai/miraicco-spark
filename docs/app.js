@@ -67,7 +67,7 @@
    * ファイルにしてあるので、どの機種でもまったく同じ音になる。
    * （ブラウザにその場で音を作らせる方法だと、機種ごとに少し違って聞こえる）
    */
-  var FLIP_SOUND = 'flip.wav?v=1' // 音を差し替えたら、この番号を1つ増やす
+  var FLIP_SOUND = 'flip.wav?v=2' // 音を差し替えたら、この番号を1つ増やす
 
   var audioCtx = null
   var flipBytes = null   // 読み込んだままの音のデータ
