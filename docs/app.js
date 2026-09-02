@@ -1,8 +1,8 @@
 /*
  * Spark 電子ブック
  *
- * 置いてあるファイル(.enc)はすべて合言葉で暗号化されている。
- * 合言葉から鍵を作り、読むときにブラウザの中だけで元に戻す。
+ * 置いてあるファイル(.enc)はすべてパスワードで暗号化されている。
+ * パスワードから鍵を作り、読むときにブラウザの中だけで元に戻す。
  * サーバー側に仕掛けがないため、静的なホスティングだけで動く（＝無料で続けられる）。
  */
 (function () {
@@ -44,7 +44,7 @@
   }
 
   var cryptoKey = null      // 復号につかう鍵
-  var keyInfo = null        // salt など（合言葉そのものは入っていない）
+  var keyInfo = null        // salt など（パスワードそのものは入っていない）
   var manifest = null       // 号の一覧
   var flip = null           // ページめくり本体
   var objectUrls = []       // 作った画像URL（あとで開放する）
@@ -103,7 +103,7 @@
     return URL.createObjectURL(new Blob([buf], { type: 'image/jpeg' }))
   }
 
-  // ---------- 合言葉 ----------
+  // ---------- パスワード ----------
 
   function deriveKey(password) {
     var enc = new TextEncoder()
@@ -137,7 +137,7 @@
       keyInfo = info
       var saved = localStorage.getItem(STORE_KEY)
       if (!saved) return show(el.lock)
-      // 前に入れた合言葉をおぼえている場合は、そのまま一覧へ
+      // 前に入れたパスワードをおぼえている場合は、そのまま一覧へ
       return crypto.subtle.importKey('raw', b64ToBytes(saved), { name: 'AES-GCM' }, true, ['decrypt'])
         .then(function (k) { cryptoKey = k; return verify() })
         .then(function (ok) {
@@ -170,7 +170,7 @@
         if (!ok) {
           cryptoKey = null
           el.lockMsg.className = 'msg'
-          el.lockMsg.textContent = '合言葉がちがうようです。もう一度お試しください。'
+          el.lockMsg.textContent = 'パスワードがちがうようです。もう一度お試しください。'
           el.lockBtn.disabled = false
           el.pw.select()
           return

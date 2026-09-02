@@ -2,14 +2,14 @@
 /**
  * Spark 電子ブック ビルドスクリプト
  *
- * PDF を1ページずつ画像にして、合言葉で暗号化し、docs/d/ の下に置く。
- * 置いたファイルは合言葉なしでは中身が読めないため、
+ * PDF を1ページずつ画像にして、パスワードで暗号化し、docs/d/ の下に置く。
+ * 置いたファイルはパスワードなしでは中身が読めないため、
  * GitHub Pages のような「誰でもアクセスできる場所」に置いても写真は見られない。
  *
  * 使い方:  node build.mjs           変わったところだけ作り直す
  *          node build.mjs --force   ぜんぶ作り直す
  *
- * 合言葉:  password.txt に1行で書く（このファイルは git に入らない）
+ * パスワード:  password.txt に1行で書く（このファイルは git に入らない）
  */
 import { execFileSync } from 'node:child_process'
 import crypto from 'node:crypto'
@@ -23,7 +23,7 @@ const OUT = path.join(SITE, 'd')
 const WORK = path.join(ROOT, 'work')
 const STATE = path.join(ROOT, '.buildstate.json') // 手元だけの控え。git には入らない
 
-const PBKDF2_ITER = 210000 // 合言葉から鍵を作るときの繰り返し回数。多いほど総当たりに強い
+const PBKDF2_ITER = 210000 // パスワードから鍵を作るときの繰り返し回数。多いほど総当たりに強い
 
 const force = process.argv.includes('--force')
 
@@ -33,11 +33,11 @@ const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'
 
 const password = (process.env.SPARK_PASSWORD ?? readIfExists(path.join(ROOT, 'password.txt'))).trim()
 if (!password) {
-  console.error('合言葉がありません。password.txt に1行で書いてください。')
+  console.error('パスワードがありません。password.txt に1行で書いてください。')
   process.exit(1)
 }
 if (password.length < 8) {
-  console.error('合言葉が短すぎます。12文字以上をおすすめします。')
+  console.error('パスワードが短すぎます。12文字以上をおすすめします。')
   process.exit(1)
 }
 
@@ -45,7 +45,7 @@ function readIfExists(p) {
   return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''
 }
 
-// 合言葉 → 鍵。salt は毎回作り直さず、既存があれば使い回す
+// パスワード → 鍵。salt は毎回作り直さず、既存があれば使い回す
 // （作り直すと過去の号も全部作り直しになるため）
 const keyPath = path.join(OUT, 'key.json')
 const salt = fs.existsSync(keyPath)
@@ -54,8 +54,8 @@ const salt = fs.existsSync(keyPath)
 const key = crypto.pbkdf2Sync(password, salt, PBKDF2_ITER, 32, 'sha256')
 
 /*
- * 合言葉を変えたのに前の号をそのまま残すと、
- * 新しい合言葉では古い号だけ開けない、という事故になる。
+ * パスワードを変えたのに前の号をそのまま残すと、
+ * 新しいパスワードでは古い号だけ開けない、という事故になる。
  * 鍵の指紋を手元に控えておき、変わっていたら全部作り直す。
  */
 const fingerprint = crypto.createHash('sha256').update(key).digest('hex').slice(0, 16)
@@ -63,7 +63,7 @@ const prevFingerprint = fs.existsSync(STATE)
   ? JSON.parse(fs.readFileSync(STATE, 'utf8')).fingerprint
   : null
 const keyChanged = prevFingerprint !== fingerprint
-if (keyChanged && prevFingerprint) console.log('合言葉が変わりました。すべて作り直します。\n')
+if (keyChanged && prevFingerprint) console.log('パスワードが変わりました。すべて作り直します。\n')
 
 const rebuildAll = force || keyChanged
 
@@ -215,7 +215,7 @@ sealToFile(Buffer.from(JSON.stringify({
   issues: manifestIssues,
 }), 'utf8'), path.join(OUT, 'manifest.enc'))
 
-// 合言葉が合っているか確かめるための小さな箱（合言葉そのものは入っていない）
+// パスワードが合っているか確かめるための小さな箱（パスワードそのものは入っていない）
 fs.writeFileSync(keyPath, JSON.stringify({
   v: 1,
   salt: salt.toString('base64'),
@@ -244,7 +244,38 @@ function stampAssets() {
 
 const totalMB = dirSize(OUT) / 1024 / 1024
 console.log(`\n完成: ${manifestIssues.length}号（うち今回作ったのは ${madeCount}号）/ 合計 ${totalMB.toFixed(1)}MB`)
-console.log(`置き場所: ${OUT}`)
+
+reportNewFolders()
+
+/*
+ * ドライブに号のフォルダが増えているのに config.json へ足し忘れる、
+ * というのが一番起きやすい見落としなので、気づけるようにしておく。
+ */
+function reportNewFolders() {
+  const base = config.pdfDirs?.[0]
+  if (!base || !fs.existsSync(base)) return
+  const used = new Set(config.issues.map((i) => String(i.pdf).split('/')[0]))
+  const found = fs.readdirSync(base, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && /^\d{4}/.test(e.name) && !used.has(e.name))
+    .map((e) => e.name)
+  if (!found.length) return
+  console.log('\n── ドライブに、まだ入れていない号のフォルダがあります ──')
+  for (const name of found) {
+    const dir = path.join(base, name)
+    const pdfs = []
+    for (const sub of ['成果物', '確認用', '.']) {
+      const d = path.join(dir, sub)
+      if (!fs.existsSync(d)) continue
+      for (const f of fs.readdirSync(d)) {
+        if (/\.pdf$/i.test(f)) pdfs.push(path.join(name, sub === '.' ? '' : sub, f))
+      }
+    }
+    console.log(`  ${name}`)
+    for (const f of pdfs) console.log(`     ${f}`)
+    if (!pdfs.length) console.log('     （PDF はまだありません）')
+  }
+  console.log('  → 入れる場合は config.json の issues のいちばん下に1行足してください\n')
+}
 
 function dirSize(dir) {
   let total = 0
