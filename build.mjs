@@ -252,6 +252,7 @@ reportNewFolders()
  * というのが一番起きやすい見落としなので、気づけるようにしておく。
  */
 function reportNewFolders() {
+  if (process.env.SPARK_FROM_PUBLISH) return // publish.mjs が自分で聞くので、ここでは黙る
   const base = config.pdfDirs?.[0]
   if (!base || !fs.existsSync(base)) return
   const used = new Set(config.issues.map((i) => String(i.pdf).split('/')[0]))
@@ -274,7 +275,7 @@ function reportNewFolders() {
     for (const f of pdfs) console.log(`     ${f}`)
     if (!pdfs.length) console.log('     （PDF はまだありません）')
   }
-  console.log('  → 入れる場合は config.json の issues のいちばん下に1行足してください\n')
+  console.log('  → 入れるときは「公開する.command」をダブルクリックしてください\n')
 }
 
 function dirSize(dir) {
