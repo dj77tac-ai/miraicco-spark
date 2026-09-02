@@ -20,7 +20,7 @@ if [ -n "$missing" ]; then
   echo "★ 次のものが入っていません:$missing"
   echo
   echo "  はじめて使うパソコンだと思います。"
-  echo "  「広報担当のかたへ_はじめの準備.md」を見て、準備をしてください。"
+  echo "  「別のパソコンで使えるようにする.md」を見て、準備をしてください。"
   echo
   read -n 1 -s -r -p "何かキーを押すと閉じます"
   exit 1
@@ -31,7 +31,7 @@ if [ ! -f password.txt ]; then
   echo "★ password.txt がありません。"
   echo
   echo "  Spark を暗号化するためのパスワードが必要です。"
-  echo "  「広報担当のかたへ_はじめの準備.md」の【3】を見てください。"
+  echo "  「別のパソコンで使えるようにする.md」の【3】を見てください。"
   echo
   read -n 1 -s -r -p "何かキーを押すと閉じます"
   exit 1
