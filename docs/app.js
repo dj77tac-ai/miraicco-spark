@@ -80,9 +80,14 @@
     })
   }
 
-  /** 暗号化されたファイルを取ってきて元に戻す */
-  function getSealed(url) {
-    return fetch(url).then(function (r) {
+  /*
+   * 暗号化されたファイルを取ってきて元に戻す。
+   * 号の中身は一度作ったら変わらないのでブラウザに覚えさせてよいが、
+   * 一覧（manifest）は号が増えるたびに変わるので、毎回確かめに行く。
+   * （これをしないと、新しい号を出しても数分〜数時間出てこない）
+   */
+  function getSealed(url, fresh) {
+    return fetch(url, fresh ? { cache: 'no-cache' } : undefined).then(function (r) {
       if (!r.ok) throw new Error(url + ' が読めません (' + r.status + ')')
       return r.arrayBuffer()
     }).then(unseal)
@@ -195,7 +200,7 @@
   // ---------- 本だな ----------
 
   function enter() {
-    return getSealed(DATA + 'manifest.enc').then(function (buf) {
+    return getSealed(DATA + 'manifest.enc', true).then(function (buf) {
       manifest = JSON.parse(new TextDecoder().decode(buf))
       renderShelf()
       route()
