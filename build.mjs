@@ -236,7 +236,20 @@ function entry(issue, pages) {
     label: issue.label,
     pages,
     year: issue.year ?? String(issue.id).slice(0, 4), // 一覧で年ごとにまとめるのに使う
+    v: stamp(issue.id), // 作り直すたびに変わる番号。古い画像が残るのを防ぐ
   }
+}
+
+/*
+ * 号を作り直すと、同じ名前のファイル(p001.enc など)の中身だけが変わる。
+ * そのままだと、前に見た人のブラウザが古い画像を使い続けてしまう
+ * （実際に、7ページだった号を12ページに作り直したとき、
+ *   後ろの5ページが出てこない、ということが起きた）。
+ * 号ごとに番号をつけ、画像を取りに行くときの合図にする。
+ */
+function stamp(id) {
+  const cover = path.join(OUT, id, 'c.enc')
+  return crypto.createHash('sha256').update(fs.readFileSync(cover)).digest('hex').slice(0, 8)
 }
 
 // 一覧（号の名前・ページ数・年）も暗号化して置く

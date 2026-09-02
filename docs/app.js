@@ -217,11 +217,16 @@
 
   /** 表紙をあとから流し込む（暗号を戻すのに少し時間がかかるため） */
   function fillCover(issue, target) {
-    getSealed(DATA + issue.id + '/c.enc').then(function (buf) {
+    getSealed(DATA + issue.id + '/c.enc' + ver(issue)).then(function (buf) {
       var url = blobUrl(buf)
       coverUrls.push(url)
       target.style.backgroundImage = 'url("' + url + '")'
     }).catch(function () { /* 表紙が出なくても読むことはできる */ })
+  }
+
+  /* 号を作り直したとき、ブラウザが古い画像を使い続けないようにする合図 */
+  function ver(issue) {
+    return issue.v ? '?v=' + issue.v : ''
   }
 
   function yearOf(issue) {
@@ -248,8 +253,7 @@
     if (!issues.length) return
     el.pastHead.hidden = false
 
-    // 新しい順にならべ、年ごとにまとめる
-    issues.reverse()
+    // 古い順のまま、年ごとにまとめる（左から右へ進むほど新しい号になる）
     var groups = []
     issues.forEach(function (issue) {
       var y = yearOf(issue)
@@ -338,7 +342,7 @@
       var i = nextIndex++
       if (i >= issue.pages) return Promise.resolve()
       var name = 'p' + String(i + 1).padStart(3, '0') + '.enc'
-      return getSealed(DATA + issue.id + '/' + name).then(function (buf) {
+      return getSealed(DATA + issue.id + '/' + name + ver(issue)).then(function (buf) {
         if (token !== loadToken) return
         var url = blobUrl(buf)
         objectUrls.push(url)
