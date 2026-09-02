@@ -1,6 +1,6 @@
 # Spark 電子ブック
 
-みらいっこの月刊誌 **Spark** の PDF を、保護者がスマートフォンやパソコンで
+みらいっこの季刊誌 **Spark** の PDF を、保護者がスマートフォンやパソコンで
 「ページをめくるように」読めるようにする仕組み。
 
 - 公開URL： https://dj77tac-ai.github.io/miraicco-spark/
