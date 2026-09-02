@@ -6,3 +6,6 @@ work/
 
 node_modules/
 .DS_Store
+
+# ビルドの控え（手元だけ）
+.buildstate.json

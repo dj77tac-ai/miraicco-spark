@@ -1,7 +1,10 @@
 {
   "title": "Spark",
   "subtitle": "みらいっこ 月刊誌",
-  "pdfDir": "/Users/tachikawaakane/Downloads/pdf_Spark最終データ202406_202510",
+  "pdfDirs": [
+    "/Users/tachikawaakane/Library/CloudStorage/GoogleDrive-dj77tac@gmail.com/マイドライブ/Spark電子ブック_元データ",
+    "/Users/tachikawaakane/Downloads/pdf_Spark最終データ202406_202510"
+  ],
   "dpi": 150,
   "jpegQuality": 82,
   "issues": [

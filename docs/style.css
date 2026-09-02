@@ -1,22 +1,24 @@
 :root {
-  --bg: #f6f3ee;
+  --bg: #f7f4ef;
+  --bg-warm: #f0e9df;
   --card: #ffffff;
   --ink: #2b2622;
   --ink-soft: #6d6259;
-  --line: #e2dbd1;
+  --ink-faint: #9a9088;
+  --line: #e4ddd3;
   --accent: #d9613a;
   --accent-dark: #b94b27;
-  --stage: #322c27;
-  --radius: 14px;
-  --shadow: 0 2px 10px rgba(60, 45, 30, .10);
+  --accent-soft: #f6d9cd;
+  --stage: #2a2521;
+  --radius: 16px;
+  --shadow-s: 0 1px 3px rgba(60, 45, 30, .10);
+  --shadow-m: 0 4px 16px rgba(60, 45, 30, .12);
+  --shadow-l: 0 14px 38px rgba(60, 45, 30, .20);
 }
 
 * { box-sizing: border-box; }
 
-html, body {
-  margin: 0;
-  height: 100%;
-}
+html, body { margin: 0; height: 100%; }
 
 body {
   background: var(--bg);
@@ -24,89 +26,150 @@ body {
   font-family: system-ui, -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
                "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
   -webkit-text-size-adjust: 100%;
+  line-height: 1.6;
 }
 
 .screen { min-height: 100%; display: flex; flex-direction: column; }
 .screen[hidden] { display: none; }
 
-/* ---------- 合言葉の画面 ---------- */
+.eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  color: var(--accent);
+}
+
+/* ---------- ① 合言葉の画面 ---------- */
 
 #lock {
+  position: relative;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 32px 20px 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% -20%, #fffdfa 0%, var(--bg) 55%, var(--bg-warm) 100%);
+}
+
+/* ふんわりした光。写真は使えない（合言葉の前なので）ため、色だけで場をつくる */
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+}
+
+.glow-a {
+  width: 420px; height: 420px;
+  top: -140px; left: -120px;
+  background: rgba(217, 97, 58, .16);
+}
+
+.glow-b {
+  width: 380px; height: 380px;
+  bottom: -160px; right: -110px;
+  background: rgba(233, 176, 74, .18);
 }
 
 .lock-card {
+  position: relative;
   width: 100%;
-  max-width: 380px;
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 36px 28px 28px;
+  max-width: 400px;
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, .8);
+  border-radius: 22px;
+  box-shadow: var(--shadow-l);
+  padding: 40px 30px 30px;
   text-align: center;
 }
 
 .logo {
-  margin: 0;
-  font-size: 40px;
-  letter-spacing: .04em;
+  margin: 8px 0 0;
+  font-size: 52px;
+  line-height: 1;
   font-weight: 800;
+  letter-spacing: .01em;
+  font-style: italic;
   color: var(--accent);
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
 }
 
-.logo-sub {
-  margin: 4px 0 26px;
-  font-size: 13px;
+.tagline {
+  margin: 10px 0 0;
+  font-size: 12.5px;
   color: var(--ink-soft);
-  letter-spacing: .08em;
+  letter-spacing: .06em;
+}
+
+.lock-lead {
+  margin: 22px 0 26px;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--ink-soft);
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
 }
 
 #lock-form { text-align: left; }
 
 #lock-form label {
   display: block;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 7px;
+  letter-spacing: .04em;
 }
 
 #pw {
   width: 100%;
-  padding: 13px 14px;
+  padding: 14px 15px;
   font-size: 16px; /* 16px 未満だと iPhone で勝手に拡大される */
   border: 1.5px solid var(--line);
-  border-radius: 10px;
+  border-radius: 11px;
   background: #fff;
   color: var(--ink);
 }
 
 #pw:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
 
-#lock-btn {
-  width: 100%;
-  margin-top: 14px;
-  padding: 14px;
-  font-size: 16px;
+.primary, #lock-btn {
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
   background: var(--accent);
   border: 0;
-  border-radius: 10px;
+  border-radius: 11px;
   cursor: pointer;
+  transition: background .15s ease, transform .1s ease;
 }
 
-#lock-btn:hover:not(:disabled) { background: var(--accent-dark); }
+#lock-btn { width: 100%; margin-top: 16px; padding: 15px; font-size: 16px; }
+.primary { padding: 12px 26px; }
+
+.primary:hover, #lock-btn:hover:not(:disabled) { background: var(--accent-dark); }
+.primary:active, #lock-btn:active:not(:disabled) { transform: translateY(1px); }
 #lock-btn:disabled { opacity: .55; cursor: default; }
 
-.msg { min-height: 20px; margin: 10px 0 0; font-size: 13px; color: var(--accent-dark); }
+.msg { min-height: 20px; margin: 12px 0 0; font-size: 13px; color: var(--accent-dark); }
 .msg.ok { color: var(--ink-soft); }
 
 .lock-note {
-  margin: 22px 0 0;
+  margin: 24px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
   font-size: 12px;
-  line-height: 1.7;
-  color: var(--ink-soft);
+  line-height: 1.8;
+  color: var(--ink-faint);
+}
+
+.lock-foot {
+  position: relative;
+  margin: 28px 0 8px;
+  font-size: 11px;
+  color: var(--ink-faint);
 }
 
 /* ---------- 共通バー ---------- */
@@ -115,42 +178,124 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  padding-top: max(10px, env(safe-area-inset-top));
-  background: var(--card);
+  padding: 12px 16px;
+  padding-top: max(12px, env(safe-area-inset-top));
+  background: rgba(255, 255, 255, .88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.bar-dark {
+  background: rgba(255, 255, 255, .95);
+  position: static;
 }
 
 .bar-title { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; }
-.logo-sm { font-size: 20px; font-weight: 800; color: var(--accent); letter-spacing: .04em; }
+
+.logo-sm {
+  font-size: 23px;
+  font-weight: 800;
+  font-style: italic;
+  color: var(--accent);
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+}
+
 .bar-sub { font-size: 12px; color: var(--ink-soft); }
 #reader-title { font-size: 15px; font-weight: 700; justify-content: center; }
 
 .ghost {
-  padding: 8px 12px;
+  padding: 8px 13px;
   font-size: 13px;
   color: var(--ink-soft);
   background: transparent;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 9px;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .ghost:hover { background: var(--bg); color: var(--ink); }
 
-/* ---------- 本だな ---------- */
+/* ---------- ② 本だな ---------- */
 
-#shelf main { flex: 1; padding: 22px 18px 40px; max-width: 1000px; margin: 0 auto; width: 100%; }
-.shelf-lead { margin: 0 0 18px; font-size: 14px; color: var(--ink-soft); }
+#shelf { background: linear-gradient(180deg, var(--bg) 0%, var(--bg-warm) 100%); }
+#shelf main { flex: 1; padding: 26px 20px 44px; max-width: 1040px; margin: 0 auto; width: 100%; }
+
+/* 表紙の共通の見た目（本らしく背に影を入れる） */
+.cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1.414;
+  background: #e8e2d9 center/cover no-repeat;
+  border-radius: 3px 7px 7px 3px;
+  box-shadow: var(--shadow-m);
+  position: relative;
+  overflow: hidden;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+/* 左端の「背」 */
+.cover::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 9px;
+  background: linear-gradient(90deg, rgba(0,0,0,.20), rgba(0,0,0,.045) 60%, rgba(255,255,255,.14));
+}
+
+/* 最新号 */
+
+.hero {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 28px;
+  align-items: center;
+  padding: 26px;
+  margin-bottom: 40px;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-s);
+}
+
+.hero[hidden] { display: none; }
+
+.hero-cover { padding: 0; background: none; border: 0; cursor: pointer; }
+.hero-cover .cover { box-shadow: var(--shadow-l); }
+.hero-cover:hover .cover { transform: translateY(-4px); }
+
+.hero-text h2 { margin: 8px 0 4px; font-size: 27px; line-height: 1.3; }
+.hero-pages { margin: 0 0 20px; font-size: 13px; color: var(--ink-soft); }
+
+.section-head {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.section-head[hidden] { display: none; }
+
+.year-head {
+  margin: 26px 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 7px;
+}
 
 .shelf-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 22px 18px;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 24px 20px;
 }
 
 .shelf-item button {
@@ -165,27 +310,17 @@ body {
   color: inherit;
 }
 
-.shelf-item .cover {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1 / 1.414;
-  background: #e8e2d9 center/cover no-repeat;
-  border-radius: 6px;
-  box-shadow: var(--shadow);
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-
 .shelf-item button:hover .cover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 18px rgba(60, 45, 30, .18);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-l);
 }
 
-.shelf-item .label { display: block; margin-top: 9px; font-size: 13.5px; font-weight: 700; }
-.shelf-item .pages { display: block; margin-top: 2px; font-size: 11.5px; color: var(--ink-soft); }
+.shelf-item .label { display: block; margin-top: 11px; font-size: 13.5px; font-weight: 700; }
+.shelf-item .pages { display: block; margin-top: 1px; font-size: 11.5px; color: var(--ink-faint); }
 
-.foot { padding: 16px; text-align: center; font-size: 11px; color: var(--ink-soft); }
+.foot { padding: 20px; text-align: center; font-size: 11px; color: var(--ink-faint); }
 
-/* ---------- 読む画面 ---------- */
+/* ---------- ③ 読む画面 ---------- */
 
 #reader { height: 100%; background: var(--stage); }
 
@@ -199,7 +334,8 @@ body {
   overflow: hidden;
 }
 
-.book { margin: 0 auto; }
+/* 表紙・裏表紙は1枚だけで出るので、中央に来るよう横へずらす */
+.book { margin: 0 auto; transition: transform .35s ease; }
 .book img { display: block; width: 100%; height: 100%; }
 
 .loading {
@@ -215,6 +351,9 @@ body {
   z-index: 5;
 }
 
+.loading[hidden] { display: none; }
+.loading p { margin: 0; }
+
 .spinner {
   width: 30px;
   height: 30px;
@@ -226,9 +365,6 @@ body {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.loading[hidden] { display: none; }
-.loading p { margin: 0; }
-
 .progress { width: 180px; height: 4px; background: rgba(255, 255, 255, .2); border-radius: 2px; overflow: hidden; }
 #progress-bar { height: 100%; width: 0; background: var(--accent); transition: width .2s ease; }
 
@@ -237,21 +373,21 @@ body {
   align-items: center;
   justify-content: center;
   gap: 20px;
-  padding: 10px 14px;
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
-  background: rgba(0, 0, 0, .22);
+  padding: 11px 14px;
+  padding-bottom: max(11px, env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, .24);
   color: #f2ece4;
 }
 
 .pager button {
-  width: 44px;
+  width: 46px;
   height: 40px;
   font-size: 22px;
   line-height: 1;
   color: #f2ece4;
   background: rgba(255, 255, 255, .10);
   border: 0;
-  border-radius: 8px;
+  border-radius: 9px;
   cursor: pointer;
 }
 
@@ -260,7 +396,25 @@ body {
 
 #pageno { font-size: 13px; min-width: 74px; text-align: center; font-variant-numeric: tabular-nums; }
 
-@media (max-width: 480px) {
-  .shelf-list { grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 18px 14px; }
+/* ---------- せまい画面 ---------- */
+
+@media (max-width: 640px) {
+  .hero {
+    grid-template-columns: 130px 1fr;
+    gap: 18px;
+    padding: 18px;
+    margin-bottom: 30px;
+  }
+  .hero-text h2 { font-size: 20px; }
+  .hero-pages { margin-bottom: 14px; }
+  .primary { padding: 10px 20px; font-size: 14px; }
+  .shelf-list { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px 14px; }
+  #shelf main { padding: 20px 16px 36px; }
   .stage { padding: 8px; }
+  .logo { font-size: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover, .book, .primary, #lock-btn { transition: none; }
+  .spinner { animation: none; }
 }

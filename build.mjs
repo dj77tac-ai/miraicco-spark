@@ -6,7 +6,9 @@
  * 置いたファイルは合言葉なしでは中身が読めないため、
  * GitHub Pages のような「誰でもアクセスできる場所」に置いても写真は見られない。
  *
- * 使い方:  node build.mjs
+ * 使い方:  node build.mjs           変わったところだけ作り直す
+ *          node build.mjs --force   ぜんぶ作り直す
+ *
  * 合言葉:  password.txt に1行で書く（このファイルは git に入らない）
  */
 import { execFileSync } from 'node:child_process'
@@ -19,38 +21,51 @@ const ROOT = path.dirname(fileURLToPath(import.meta.url))
 const SITE = path.join(ROOT, 'docs')
 const OUT = path.join(SITE, 'd')
 const WORK = path.join(ROOT, 'work')
+const STATE = path.join(ROOT, '.buildstate.json') // 手元だけの控え。git には入らない
 
 const PBKDF2_ITER = 210000 // 合言葉から鍵を作るときの繰り返し回数。多いほど総当たりに強い
+
+const force = process.argv.includes('--force')
 
 // ---------- 準備 ----------
 
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'))
 
-const password = (process.env.SPARK_PASSWORD ?? readPasswordFile()).trim()
+const password = (process.env.SPARK_PASSWORD ?? readIfExists(path.join(ROOT, 'password.txt'))).trim()
 if (!password) {
   console.error('合言葉がありません。password.txt に1行で書いてください。')
   process.exit(1)
 }
-if (password.length < 6) {
-  console.error('合言葉が短すぎます。6文字以上にしてください。')
+if (password.length < 8) {
+  console.error('合言葉が短すぎます。12文字以上をおすすめします。')
   process.exit(1)
 }
 
-function readPasswordFile() {
-  const p = path.join(ROOT, 'password.txt')
+function readIfExists(p) {
   return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''
 }
 
 // 合言葉 → 鍵。salt は毎回作り直さず、既存があれば使い回す
 // （作り直すと過去の号も全部作り直しになるため）
 const keyPath = path.join(OUT, 'key.json')
-let salt
-if (fs.existsSync(keyPath)) {
-  salt = Buffer.from(JSON.parse(fs.readFileSync(keyPath, 'utf8')).salt, 'base64')
-} else {
-  salt = crypto.randomBytes(16)
-}
+const salt = fs.existsSync(keyPath)
+  ? Buffer.from(JSON.parse(fs.readFileSync(keyPath, 'utf8')).salt, 'base64')
+  : crypto.randomBytes(16)
 const key = crypto.pbkdf2Sync(password, salt, PBKDF2_ITER, 32, 'sha256')
+
+/*
+ * 合言葉を変えたのに前の号をそのまま残すと、
+ * 新しい合言葉では古い号だけ開けない、という事故になる。
+ * 鍵の指紋を手元に控えておき、変わっていたら全部作り直す。
+ */
+const fingerprint = crypto.createHash('sha256').update(key).digest('hex').slice(0, 16)
+const prevFingerprint = fs.existsSync(STATE)
+  ? JSON.parse(fs.readFileSync(STATE, 'utf8')).fingerprint
+  : null
+const keyChanged = prevFingerprint !== fingerprint
+if (keyChanged && prevFingerprint) console.log('合言葉が変わりました。すべて作り直します。\n')
+
+const rebuildAll = force || keyChanged
 
 // ---------- 暗号化 ----------
 
@@ -69,10 +84,6 @@ function sealToFile(buf, dest) {
 
 // ---------- PDF → 画像 ----------
 
-function pdftoppm(args) {
-  execFileSync('pdftoppm', args, { stdio: ['ignore', 'ignore', 'pipe'] })
-}
-
 function pageCount(pdf) {
   const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' })
   const m = info.match(/^Pages:\s+(\d+)/m)
@@ -88,11 +99,28 @@ function renderPage(pdf, pageNo, { dpi, scaleToX }) {
   if (scaleToX) args.push('-scale-to-x', String(scaleToX), '-scale-to-y', '-1')
   else args.push('-r', String(dpi))
   args.push(pdf, prefix)
-  pdftoppm(args)
+  execFileSync('pdftoppm', args, { stdio: ['ignore', 'ignore', 'pipe'] })
   const out = prefix + '.jpg'
   const buf = fs.readFileSync(out)
   fs.unlinkSync(out)
   return buf
+}
+
+/** config の pdfDirs を順にさがす */
+function findPdf(name) {
+  if (path.isAbsolute(name)) return fs.existsSync(name) ? name : null
+  for (const dir of config.pdfDirs ?? []) {
+    const p = path.join(dir, name)
+    if (fs.existsSync(p)) return p
+  }
+  return null
+}
+
+/** すでに作ってある号か（ページ数を返す。まだなら 0） */
+function builtPages(id) {
+  const dir = path.join(OUT, id)
+  if (!fs.existsSync(dir) || !fs.existsSync(path.join(dir, 'c.enc'))) return 0
+  return fs.readdirSync(dir).filter((f) => /^p\d+\.enc$/.test(f)).length
 }
 
 // ---------- 本処理 ----------
@@ -101,14 +129,27 @@ fs.mkdirSync(WORK, { recursive: true })
 fs.mkdirSync(OUT, { recursive: true })
 
 const manifestIssues = []
-let totalBytes = 0
+let madeCount = 0
 
 for (const issue of config.issues) {
-  const pdf = path.isAbsolute(issue.pdf) ? issue.pdf : path.join(config.pdfDir, issue.pdf)
-  if (!fs.existsSync(pdf)) {
-    console.error(`  ✗ ${issue.label}: PDF が見つかりません → ${pdf}`)
+  const already = rebuildAll ? 0 : builtPages(issue.id)
+  const pdf = findPdf(issue.pdf)
+
+  // すでに作ってあり、元の PDF も変わっていなければ、そのまま使う
+  if (already > 0) {
+    const stamp = fs.statSync(path.join(OUT, issue.id, 'c.enc')).mtimeMs
+    if (!pdf || fs.statSync(pdf).mtimeMs <= stamp) {
+      console.log(`${issue.label} (${already}ページ) — 作成ずみ`)
+      manifestIssues.push(entry(issue, already))
+      continue
+    }
+  }
+
+  if (!pdf) {
+    console.error(`  ✗ ${issue.label}: PDF が見つかりません → ${issue.pdf}`)
     continue
   }
+
   const pages = pageCount(pdf)
   const dir = path.join(OUT, issue.id)
   fs.rmSync(dir, { recursive: true, force: true })
@@ -120,25 +161,32 @@ for (const issue of config.issues) {
 
   let bytes = 0
   for (let p = 1; p <= pages; p++) {
-    const jpg = renderPage(pdf, p, { dpi: config.dpi })
     const dest = path.join(dir, `p${String(p).padStart(3, '0')}.enc`)
-    sealToFile(jpg, dest)
+    sealToFile(renderPage(pdf, p, { dpi: config.dpi }), dest)
     bytes += fs.statSync(dest).size
     process.stdout.write('.')
   }
-  totalBytes += bytes
   console.log(` ${(bytes / 1024 / 1024).toFixed(1)}MB`)
 
-  manifestIssues.push({ id: issue.id, label: issue.label, pages })
+  madeCount++
+  manifestIssues.push(entry(issue, pages))
 }
 
-// 一覧（号の名前とページ数）も暗号化して置く
-const manifest = {
+function entry(issue, pages) {
+  return {
+    id: issue.id,
+    label: issue.label,
+    pages,
+    year: issue.year ?? String(issue.id).slice(0, 4), // 一覧で年ごとにまとめるのに使う
+  }
+}
+
+// 一覧（号の名前・ページ数・年）も暗号化して置く
+sealToFile(Buffer.from(JSON.stringify({
   title: config.title,
   subtitle: config.subtitle,
   issues: manifestIssues,
-}
-sealToFile(Buffer.from(JSON.stringify(manifest), 'utf8'), path.join(OUT, 'manifest.enc'))
+}), 'utf8'), path.join(OUT, 'manifest.enc'))
 
 // 合言葉が合っているか確かめるための小さな箱（合言葉そのものは入っていない）
 fs.writeFileSync(keyPath, JSON.stringify({
@@ -148,6 +196,7 @@ fs.writeFileSync(keyPath, JSON.stringify({
   check: seal(Buffer.from('spark-ok', 'utf8')).toString('base64'),
 }, null, 2))
 
+fs.writeFileSync(STATE, JSON.stringify({ fingerprint }, null, 2))
 fs.rmSync(WORK, { recursive: true, force: true })
 
 // 画面のファイル(style.css / app.js)を直したとき、
@@ -166,5 +215,15 @@ function stampAssets() {
   fs.writeFileSync(indexPath, html)
 }
 
-console.log(`\n完成: ${manifestIssues.length}号 / 合計 ${(totalBytes / 1024 / 1024).toFixed(1)}MB`)
+const totalMB = dirSize(OUT) / 1024 / 1024
+console.log(`\n完成: ${manifestIssues.length}号（うち今回作ったのは ${madeCount}号）/ 合計 ${totalMB.toFixed(1)}MB`)
 console.log(`置き場所: ${OUT}`)
+
+function dirSize(dir) {
+  let total = 0
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name)
+    total += e.isDirectory() ? dirSize(p) : fs.statSync(p).size
+  }
+  return total
+}
