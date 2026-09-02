@@ -10,7 +10,6 @@
 
   var DATA = 'd/'
   var STORE_KEY = 'spark.key.v1'
-  var SOUND_KEY = 'spark.sound.v1'
 
   var el = {
     lock: document.getElementById('lock'),
@@ -34,7 +33,6 @@
     readerTitle: document.getElementById('reader-title'),
     back: document.getElementById('back'),
     zoom: document.getElementById('zoom'),
-    sound: document.getElementById('sound'),
     stage: document.getElementById('stage'),
     book: document.getElementById('book'),
     loading: document.getElementById('loading'),
@@ -54,71 +52,6 @@
   var loadToken = 0         // 読み込み中に別の号へ移ったときの打ち切り用
   var pageWidthPx = 0       // いま表示している紙1枚の幅
   var isPortrait = false    // スマホなど、1ページずつ表示しているか
-
-  // ---------- めくる音 ----------
-
-  /*
-   * 紙をめくる音。
-   *
-   * 音そのものは、こちらで一から作った docs/flip.wav（19KB）。
-   * よその音源を使っていないので、権利の心配はない。
-   * 作り方は「めくる音のつくりかた.md」に残してある。
-   *
-   * ファイルにしてあるので、どの機種でもまったく同じ音になる。
-   * （ブラウザにその場で音を作らせる方法だと、機種ごとに少し違って聞こえる）
-   */
-  var FLIP_SOUND = 'flip.wav?v=2' // 音を差し替えたら、この番号を1つ増やす
-
-  var audioCtx = null
-  var flipBytes = null   // 読み込んだままの音のデータ
-  var flipBuffer = null  // 鳴らせる形にしたもの
-  var soundOn = localStorage.getItem(SOUND_KEY) !== 'off' // 何もしなければ音あり
-
-  function getAudio() {
-    if (!audioCtx) {
-      var AC = window.AudioContext || window.webkitAudioContext
-      if (!AC) return null
-      try { audioCtx = new AC() } catch (e) { return null }
-      prepareFlip()
-    }
-    // スマホは「画面をさわった時」でないと音を出せない決まりがある
-    if (audioCtx.state === 'suspended' && audioCtx.resume) audioCtx.resume()
-    return audioCtx
-  }
-
-  function prepareFlip() {
-    if (!audioCtx || !flipBytes || flipBuffer) return
-    try {
-      // decodeAudioData は元のデータを食べてしまうので、写しを渡す
-      audioCtx.decodeAudioData(flipBytes.slice(0), function (buf) { flipBuffer = buf }, function () {})
-    } catch (e) { /* 音が出なくても読むことはできる */ }
-  }
-
-  fetch(FLIP_SOUND)
-    .then(function (r) { return r.arrayBuffer() })
-    .then(function (b) { flipBytes = b; prepareFlip() })
-    .catch(function () { /* 音が無くても読むことはできる */ })
-
-  function playFlipSound() {
-    if (!soundOn) return
-    var ctx = getAudio()
-    if (!ctx || !flipBuffer) return
-    var src = ctx.createBufferSource()
-    src.buffer = flipBuffer
-    src.connect(ctx.destination)
-    src.start()
-  }
-
-  function setSound(on, preview) {
-    soundOn = on
-    localStorage.setItem(SOUND_KEY, on ? 'on' : 'off')
-    el.sound.setAttribute('aria-pressed', on ? 'true' : 'false')
-    el.sound.title = on ? 'めくる音を止める' : 'めくる音を出す'
-    el.sound.setAttribute('aria-label', el.sound.title)
-    if (on && preview) playFlipSound() // 押した人に、どんな音か聞かせる
-  }
-
-  el.sound.addEventListener('click', function () { setSound(!soundOn, true) })
 
   // ---------- 下ごしらえ ----------
 
@@ -228,7 +161,6 @@
     e.preventDefault()
     var pw = el.pw.value
     if (!pw) return
-    getAudio() // ここは画面をさわった直後なので、音の用意を始められる
     el.lockBtn.disabled = true
     el.lockMsg.className = 'msg ok'
     el.lockMsg.textContent = '確かめています…'
@@ -473,14 +405,6 @@
     flip.loadFromImages(urls)
     flip.on('flip', function () { sync(issue) })
 
-    // めくり始めに音を鳴らす（めくり終わりだと、動きと音がずれて聞こえる）
-    var wasFlipping = false
-    flip.on('changeState', function (e) {
-      var now = e.data === 'flipping'
-      if (now && !wasFlipping) playFlipSound()
-      wasFlipping = now
-    })
-
     sync(issue)
   }
 
@@ -561,6 +485,5 @@
 
   window.addEventListener('hashchange', route)
 
-  setSound(soundOn, false)
   start()
 })()

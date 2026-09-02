@@ -223,7 +223,7 @@ body {
 
 .ghost:hover { background: var(--bg); color: var(--ink); }
 
-/* 印だけのボタン（音・大きく表示） */
+/* 印だけのボタン（大きく表示） */
 .ghost.icon {
   display: inline-flex;
   align-items: center;
@@ -234,11 +234,6 @@ body {
 
 .ghost.icon svg { display: block; }
 
-/* 音のボタン。今どちらかで、線と斜線を出し分ける */
-#sound .off { display: none; }
-#sound[aria-pressed="false"] .on { display: none; }
-#sound[aria-pressed="false"] .off { display: block; }
-#sound[aria-pressed="false"] { opacity: .55; }
 
 /* ---------- ② 本だな ---------- */
 
