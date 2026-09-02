@@ -84,20 +84,41 @@ function sealToFile(buf, dest) {
 
 // ---------- PDF → 画像 ----------
 
-function pageCount(pdf) {
+const A4 = { w: 595.276, h: 841.89 } // A4 の大きさ（ポイント）
+
+/** ページ数と紙の大きさを読む */
+function pdfInfo(pdf) {
   const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' })
-  const m = info.match(/^Pages:\s+(\d+)/m)
-  if (!m) throw new Error(`ページ数が読めません: ${pdf}`)
-  return Number(m[1])
+  const pages = info.match(/^Pages:\s+(\d+)/m)
+  const size = info.match(/^Page size:\s+([\d.]+) x ([\d.]+)/m)
+  if (!pages || !size) throw new Error(`PDF が読めません: ${pdf}`)
+  return { pages: Number(pages[1]), w: Number(size[1]), h: Number(size[2]) }
+}
+
+/*
+ * 印刷所へ出す PDF には、四隅に「トンボ」（切り落とし位置の目印）と
+ * その外側の余白が付いていることがある。そのまま画面に出すと
+ * 紙のまわりに白いふちと十字の線が見えてしまうので、A4 の大きさに切り落とす。
+ * ちょうど A4 の PDF は何もしない。
+ */
+function trimBox(info) {
+  if (info.w <= A4.w + 2 && info.h <= A4.h + 2) return null
+  const x = (info.w - A4.w) / 2
+  const y = (info.h - A4.h) / 2
+  if (x < 0 || y < 0) return null
+  return { x, y, w: A4.w, h: A4.h }
 }
 
 /** 1ページ分を JPEG にして Buffer で返す */
-function renderPage(pdf, pageNo, { dpi, scaleToX }) {
+function renderPage(pdf, pageNo, { dpi, crop }) {
   const prefix = path.join(WORK, 'tmp')
   const args = ['-jpeg', '-jpegopt', `quality=${config.jpegQuality}`,
-    '-f', String(pageNo), '-l', String(pageNo), '-singlefile']
-  if (scaleToX) args.push('-scale-to-x', String(scaleToX), '-scale-to-y', '-1')
-  else args.push('-r', String(dpi))
+    '-f', String(pageNo), '-l', String(pageNo), '-singlefile', '-r', String(dpi)]
+  if (crop) {
+    const k = dpi / 72 // ポイント → 画素
+    args.push('-x', String(Math.round(crop.x * k)), '-y', String(Math.round(crop.y * k)),
+      '-W', String(Math.round(crop.w * k)), '-H', String(Math.round(crop.h * k)))
+  }
   args.push(pdf, prefix)
   execFileSync('pdftoppm', args, { stdio: ['ignore', 'ignore', 'pipe'] })
   const out = prefix + '.jpg'
@@ -150,19 +171,25 @@ for (const issue of config.issues) {
     continue
   }
 
-  const pages = pageCount(pdf)
+  const info = pdfInfo(pdf)
+  const pages = info.pages
+  const crop = issue.trim === false ? null : trimBox(info)
   const dir = path.join(OUT, issue.id)
   fs.rmSync(dir, { recursive: true, force: true })
 
   process.stdout.write(`${issue.label} (${pages}ページ) `)
+  if (crop) {
+    const mm = (n) => (n * 25.4 / 72).toFixed(0)
+    process.stdout.write(`[トンボを切落し 左右${mm(crop.x)}mm 上下${mm(crop.y)}mm] `)
+  }
 
-  // 表紙のちいさい画像（一覧用）
-  sealToFile(renderPage(pdf, 1, { scaleToX: 500 }), path.join(dir, 'c.enc'))
+  // 表紙のちいさい画像（一覧用）。切り落とし後の幅が 500px くらいになる粗さで
+  sealToFile(renderPage(pdf, 1, { dpi: 60, crop }), path.join(dir, 'c.enc'))
 
   let bytes = 0
   for (let p = 1; p <= pages; p++) {
     const dest = path.join(dir, `p${String(p).padStart(3, '0')}.enc`)
-    sealToFile(renderPage(pdf, p, { dpi: config.dpi }), dest)
+    sealToFile(renderPage(pdf, p, { dpi: config.dpi, crop }), dest)
     bytes += fs.statSync(dest).size
     process.stdout.write('.')
   }

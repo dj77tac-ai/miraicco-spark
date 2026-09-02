@@ -2,19 +2,21 @@
   "title": "Spark",
   "subtitle": "みらいっこ 月刊誌",
   "pdfDirs": [
-    "/Users/tachikawaakane/Library/CloudStorage/GoogleDrive-dj77tac@gmail.com/マイドライブ/Spark電子ブック_元データ",
+    "/Users/tachikawaakane/Library/CloudStorage/GoogleDrive-dj77tac@gmail.com/マイドライブ/WORK/★SBフォルダ/★共有フォルダ/99お知らせ/ブログ関連/Spark",
     "/Users/tachikawaakane/Downloads/pdf_Spark最終データ202406_202510"
   ],
   "dpi": 150,
   "jpegQuality": 82,
   "issues": [
-    { "id": "202407",    "label": "2024年7月号",      "pdf": "C001_Spark202407.pdf" },
-    { "id": "202408",    "label": "2024年8月号",      "pdf": "C002_Spark202408.pdf" },
-    { "id": "202409",    "label": "2024年9月号",      "pdf": "C003_Spark202409.pdf" },
-    { "id": "202410",    "label": "2024年10月号",     "pdf": "C004_Spark202410.pdf" },
-    { "id": "202411_12", "label": "2024年11・12月号", "pdf": "C005_Spark202411_12.pdf" },
-    { "id": "202501_03", "label": "2025年1〜3月号",   "pdf": "C006_Spark202501_03.pdf" },
-    { "id": "202504_05", "label": "2025年4・5月号",   "pdf": "C007_Spark202504_05.pdf" },
-    { "id": "202506_09", "label": "2025年6〜9月号",   "pdf": "C008_Spark202506_09.pdf" }
+    { "id": "202407",    "label": "2024年7月号",      "pdf": "202407/202407成果物/発行済み、最終閲覧用データ-.pdf" },
+    { "id": "202408",    "label": "2024年8月号",      "pdf": "202408/202408成果物/Spark2024年8月号_アーカイブ.pdf" },
+    { "id": "202409",    "label": "2024年9月号",      "pdf": "202409/202409成果物/Spark-September-閲覧用2.pdf" },
+    { "id": "202410",    "label": "2024年10月号",     "pdf": "202410/202410成果物/Spark-Oct-アーカイブ.pdf" },
+    { "id": "202411_12", "label": "2024年11・12月号", "pdf": "202411_12/2024年11-12月成果物/SparkDecNovOlアーカイブ用.pdf" },
+    { "id": "202501_03", "label": "2025年1〜3月号",   "pdf": "2025_123/(進捗14)Spark -Jan Feb Mar.pdf" },
+    { "id": "202504_05", "label": "2025年4・5月号",   "pdf": "2025045/成果物/ForArchive-Spark-April-may-ol.pdf" },
+    { "id": "202506_09", "label": "2025年6〜9月号",   "pdf": "2025678/成果物/ForWeb_Spark_June_July - Ol.pdf" },
+    { "id": "202510_12", "label": "2025年10〜12月号", "pdf": "2025_101112/成果物/SparkOct-Nov-Des-Ol.pdf" },
+    { "id": "202601_03", "label": "2026年1〜3月号",   "pdf": "2026123/成果物/Spark-Jan-Mar -Ol.pdf" }
   ]
 }
