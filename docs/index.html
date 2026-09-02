@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Spark｜みらいっこ</title>
+<link rel="stylesheet" href="vendor/page-flip.css">
+<link rel="stylesheet" href="style.css?v=5733cc63">
+</head>
+<body>
+
+<!-- ① 合言葉の画面 -->
+<section id="lock" class="screen">
+  <div class="lock-card">
+    <h1 class="logo">Spark</h1>
+    <p class="logo-sub">みらいっこ 月刊誌</p>
+    <form id="lock-form" autocomplete="off">
+      <label for="pw">合言葉</label>
+      <input id="pw" type="password" inputmode="text" autocomplete="current-password" placeholder="合言葉を入れてください">
+      <button id="lock-btn" type="submit">ひらく</button>
+      <p id="lock-msg" class="msg" role="status" aria-live="polite"></p>
+    </form>
+    <p class="lock-note">合言葉はみらいっこからお知らせしたものです。<br>わからないときは職員におたずねください。</p>
+  </div>
+</section>
+
+<!-- ② 一覧（本だな） -->
+<section id="shelf" class="screen" hidden>
+  <header class="bar">
+    <div class="bar-title"><span class="logo-sm">Spark</span><span class="bar-sub">みらいっこ 月刊誌</span></div>
+    <button id="forget" class="ghost" type="button">とじる</button>
+  </header>
+  <main>
+    <p class="shelf-lead">読みたい号をえらんでください。</p>
+    <ul id="shelf-list" class="shelf-list"></ul>
+  </main>
+  <footer class="foot">© 株式会社ストーリーボード</footer>
+</section>
+
+<!-- ③ 読む画面 -->
+<section id="reader" class="screen" hidden>
+  <header class="bar">
+    <button id="back" class="ghost" type="button">← 一覧</button>
+    <div id="reader-title" class="bar-title"></div>
+    <button id="zoom" class="ghost" type="button" title="大きく表示">⛶</button>
+  </header>
+
+  <div id="stage" class="stage">
+    <div id="loading" class="loading" hidden>
+      <div class="spinner"></div>
+      <p id="loading-msg">よみこみ中…</p>
+      <div class="progress"><div id="progress-bar"></div></div>
+    </div>
+    <div id="book" class="book"></div>
+  </div>
+
+  <nav class="pager">
+    <button id="prev" type="button" aria-label="前のページ">‹</button>
+    <span id="pageno">- / -</span>
+    <button id="next" type="button" aria-label="次のページ">›</button>
+  </nav>
+</section>
+
+<script src="vendor/page-flip.browser.js"></script>
+<script src="app.js?v=ff70f67f"></script>
+</body>
+</html>

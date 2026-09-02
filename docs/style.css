@@ -1,0 +1,266 @@
+:root {
+  --bg: #f6f3ee;
+  --card: #ffffff;
+  --ink: #2b2622;
+  --ink-soft: #6d6259;
+  --line: #e2dbd1;
+  --accent: #d9613a;
+  --accent-dark: #b94b27;
+  --stage: #322c27;
+  --radius: 14px;
+  --shadow: 0 2px 10px rgba(60, 45, 30, .10);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+               "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+.screen { min-height: 100%; display: flex; flex-direction: column; }
+.screen[hidden] { display: none; }
+
+/* ---------- 合言葉の画面 ---------- */
+
+#lock {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.lock-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 36px 28px 28px;
+  text-align: center;
+}
+
+.logo {
+  margin: 0;
+  font-size: 40px;
+  letter-spacing: .04em;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.logo-sub {
+  margin: 4px 0 26px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  letter-spacing: .08em;
+}
+
+#lock-form { text-align: left; }
+
+#lock-form label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+#pw {
+  width: 100%;
+  padding: 13px 14px;
+  font-size: 16px; /* 16px 未満だと iPhone で勝手に拡大される */
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+}
+
+#pw:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+
+#lock-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#lock-btn:hover:not(:disabled) { background: var(--accent-dark); }
+#lock-btn:disabled { opacity: .55; cursor: default; }
+
+.msg { min-height: 20px; margin: 10px 0 0; font-size: 13px; color: var(--accent-dark); }
+.msg.ok { color: var(--ink-soft); }
+
+.lock-note {
+  margin: 22px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+/* ---------- 共通バー ---------- */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+.bar-title { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; }
+.logo-sm { font-size: 20px; font-weight: 800; color: var(--accent); letter-spacing: .04em; }
+.bar-sub { font-size: 12px; color: var(--ink-soft); }
+#reader-title { font-size: 15px; font-weight: 700; justify-content: center; }
+
+.ghost {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ghost:hover { background: var(--bg); color: var(--ink); }
+
+/* ---------- 本だな ---------- */
+
+#shelf main { flex: 1; padding: 22px 18px 40px; max-width: 1000px; margin: 0 auto; width: 100%; }
+.shelf-lead { margin: 0 0 18px; font-size: 14px; color: var(--ink-soft); }
+
+.shelf-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 22px 18px;
+}
+
+.shelf-item button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.shelf-item .cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1.414;
+  background: #e8e2d9 center/cover no-repeat;
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.shelf-item button:hover .cover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(60, 45, 30, .18);
+}
+
+.shelf-item .label { display: block; margin-top: 9px; font-size: 13.5px; font-weight: 700; }
+.shelf-item .pages { display: block; margin-top: 2px; font-size: 11.5px; color: var(--ink-soft); }
+
+.foot { padding: 16px; text-align: center; font-size: 11px; color: var(--ink-soft); }
+
+/* ---------- 読む画面 ---------- */
+
+#reader { height: 100%; background: var(--stage); }
+
+.stage {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.book { margin: 0 auto; }
+.book img { display: block; width: 100%; height: 100%; }
+
+.loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #f2ece4;
+  font-size: 13px;
+  z-index: 5;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(255, 255, 255, .25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading[hidden] { display: none; }
+.loading p { margin: 0; }
+
+.progress { width: 180px; height: 4px; background: rgba(255, 255, 255, .2); border-radius: 2px; overflow: hidden; }
+#progress-bar { height: 100%; width: 0; background: var(--accent); transition: width .2s ease; }
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px 14px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, .22);
+  color: #f2ece4;
+}
+
+.pager button {
+  width: 44px;
+  height: 40px;
+  font-size: 22px;
+  line-height: 1;
+  color: #f2ece4;
+  background: rgba(255, 255, 255, .10);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pager button:hover:not(:disabled) { background: rgba(255, 255, 255, .2); }
+.pager button:disabled { opacity: .3; cursor: default; }
+
+#pageno { font-size: 13px; min-width: 74px; text-align: center; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 480px) {
+  .shelf-list { grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 18px 14px; }
+  .stage { padding: 8px; }
+}

@@ -1,0 +1,8 @@
+# 合言葉そのもの。絶対に公開しない
+password.txt
+
+# 変換途中の画像（暗号化前の生データ）。公開しない
+work/
+
+node_modules/
+.DS_Store
