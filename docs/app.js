@@ -10,6 +10,7 @@
 
   var DATA = 'd/'
   var STORE_KEY = 'spark.key.v1'
+  var SOUND_KEY = 'spark.sound.v1'
 
   var el = {
     lock: document.getElementById('lock'),
@@ -33,6 +34,7 @@
     readerTitle: document.getElementById('reader-title'),
     back: document.getElementById('back'),
     zoom: document.getElementById('zoom'),
+    sound: document.getElementById('sound'),
     stage: document.getElementById('stage'),
     book: document.getElementById('book'),
     loading: document.getElementById('loading'),
@@ -52,6 +54,89 @@
   var loadToken = 0         // 読み込み中に別の号へ移ったときの打ち切り用
   var pageWidthPx = 0       // いま表示している紙1枚の幅
   var isPortrait = false    // スマホなど、1ページずつ表示しているか
+
+  // ---------- めくる音 ----------
+
+  /*
+   * 紙をめくる音。音のファイルは置かず、その場で作っている。
+   *
+   * 紙がこすれる音は「ざらざらした音（雑音）を一瞬だけ鳴らして、すっと消す」
+   * ことで作れる。ファイルを持たないので容量が増えず、
+   * よその音源を使わないので権利の心配もない。
+   *
+   * かさっと軽い紙の感じにするため、高めの音を短く、2回わずかにずらして鳴らす。
+   */
+  var audioCtx = null
+  var noiseBuffer = null
+  var soundOn = localStorage.getItem(SOUND_KEY) !== 'off' // 何もしなければ音あり
+
+  function getAudio() {
+    if (!audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext
+      if (!AC) return null
+      try { audioCtx = new AC() } catch (e) { return null }
+    }
+    // スマホは「画面をさわった時」でないと音を出せない決まりがある
+    if (audioCtx.state === 'suspended' && audioCtx.resume) audioCtx.resume()
+    return audioCtx
+  }
+
+  function getNoise(ctx) {
+    if (noiseBuffer) return noiseBuffer
+    var len = Math.floor(ctx.sampleRate * 0.4)
+    noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate)
+    var d = noiseBuffer.getChannelData(0)
+    for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1
+    return noiseBuffer
+  }
+
+  /** 雑音をひとかたまり鳴らす（at 秒後から dur 秒、freq あたりの高さで） */
+  function burst(ctx, at, dur, freq, peak) {
+    var src = ctx.createBufferSource()
+    src.buffer = getNoise(ctx)
+
+    var high = ctx.createBiquadFilter()   // 低い音を落として、紙らしく軽くする
+    high.type = 'highpass'
+    high.frequency.value = 1400
+
+    var band = ctx.createBiquadFilter()   // 「かさ」の芯になる高さ
+    band.type = 'bandpass'
+    band.Q.value = 0.8
+    band.frequency.setValueAtTime(freq, at)
+    band.frequency.exponentialRampToValueAtTime(freq * 0.45, at + dur)
+
+    var gain = ctx.createGain()           // ぱっと出て、すっと消える
+    gain.gain.setValueAtTime(0.0001, at)
+    gain.gain.exponentialRampToValueAtTime(peak, at + 0.010)
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + dur)
+
+    src.connect(high)
+    high.connect(band)
+    band.connect(gain)
+    gain.connect(ctx.destination)
+    src.start(at)
+    src.stop(at + dur + 0.02)
+  }
+
+  function playFlipSound() {
+    if (!soundOn) return
+    var ctx = getAudio()
+    if (!ctx) return
+    var t = ctx.currentTime
+    burst(ctx, t, 0.14, 3400, 0.14)
+    burst(ctx, t + 0.05, 0.10, 4600, 0.09)
+  }
+
+  function setSound(on, preview) {
+    soundOn = on
+    localStorage.setItem(SOUND_KEY, on ? 'on' : 'off')
+    el.sound.setAttribute('aria-pressed', on ? 'true' : 'false')
+    el.sound.title = on ? 'めくる音を止める' : 'めくる音を出す'
+    el.sound.setAttribute('aria-label', el.sound.title)
+    if (on && preview) playFlipSound() // 押した人に、どんな音か聞かせる
+  }
+
+  el.sound.addEventListener('click', function () { setSound(!soundOn, true) })
 
   // ---------- 下ごしらえ ----------
 
@@ -404,6 +489,15 @@
 
     flip.loadFromImages(urls)
     flip.on('flip', function () { sync(issue) })
+
+    // めくり始めに音を鳴らす（めくり終わりだと、動きと音がずれて聞こえる）
+    var wasFlipping = false
+    flip.on('changeState', function (e) {
+      var now = e.data === 'flipping'
+      if (now && !wasFlipping) playFlipSound()
+      wasFlipping = now
+    })
+
     sync(issue)
   }
 
@@ -484,5 +578,6 @@
 
   window.addEventListener('hashchange', route)
 
+  setSound(soundOn, false)
   start()
 })()
