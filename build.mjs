@@ -85,28 +85,58 @@ function sealToFile(buf, dest) {
 // ---------- PDF → 画像 ----------
 
 const A4 = { w: 595.276, h: 841.89 } // A4 の大きさ（ポイント）
+const TOL = 4                        // 数ポイントのずれは同じ大きさとみなす
 
-/** ページ数と紙の大きさを読む */
+/** ページ数と、1ページずつの紙の大きさを読む */
 function pdfInfo(pdf) {
-  const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' })
-  const pages = info.match(/^Pages:\s+(\d+)/m)
-  const size = info.match(/^Page size:\s+([\d.]+) x ([\d.]+)/m)
-  if (!pages || !size) throw new Error(`PDF が読めません: ${pdf}`)
-  return { pages: Number(pages[1]), w: Number(size[1]), h: Number(size[2]) }
+  const info = execFileSync('pdfinfo', ['-f', '1', '-l', '9999', pdf], { encoding: 'utf8' })
+  const pages = Number((info.match(/^Pages:\s+(\d+)/m) || [])[1])
+  const sizes = [...info.matchAll(/^Page\s+\d+ size:\s+([\d.]+) x ([\d.]+)/gm)]
+    .map((m) => ({ w: Number(m[1]), h: Number(m[2]) }))
+  if (!pages || sizes.length !== pages) throw new Error(`PDF が読めません: ${pdf}`)
+  return { pages, sizes }
 }
 
 /*
- * 印刷所へ出す PDF には、四隅に「トンボ」（切り落とし位置の目印）と
- * その外側の余白が付いていることがある。そのまま画面に出すと
- * 紙のまわりに白いふちと十字の線が見えてしまうので、A4 の大きさに切り落とす。
- * ちょうど A4 の PDF は何もしない。
+ * PDF から「画面に出す紙」の一覧を作る。
+ *
+ * 号によって、PDF の作り方が2通りある。
+ *
+ *   ① たて1ページずつ入っているもの（ほとんどの号）
+ *   ② 見開き（2ページ分が横に並んだ1枚）で入っているもの
+ *      → 2025年1〜3月号がこれ。そのまま出すと横に長い紙が出てしまうので、
+ *        まん中で切って2枚に分ける
+ *
+ * さらに、印刷所へ出す PDF には四隅にトンボ（切り落としの目印）と
+ * その外側の余白が付いていることがあるので、A4 の大きさに切り落とす。
  */
-function trimBox(info) {
-  if (info.w <= A4.w + 2 && info.h <= A4.h + 2) return null
-  const x = (info.w - A4.w) / 2
-  const y = (info.h - A4.h) / 2
-  if (x < 0 || y < 0) return null
-  return { x, y, w: A4.w, h: A4.h }
+function facePlan(info) {
+  const faces = []
+  let split = 0
+  let trimmed = 0
+
+  for (let p = 1; p <= info.pages; p++) {
+    const { w, h } = info.sizes[p - 1]
+    const isSpread = w >= A4.w * 2 - TOL
+    const targetW = isSpread ? A4.w * 2 : A4.w
+    const targetH = A4.h
+    const mx = Math.max(0, (w - targetW) / 2) // 左右の余白（トンボの外側）
+    const my = Math.max(0, (h - targetH) / 2) // 上下の余白
+
+    if (isSpread) {
+      const half = targetW / 2
+      faces.push({ page: p, crop: { x: mx, y: my, w: half, h: targetH } })          // 左のページ
+      faces.push({ page: p, crop: { x: mx + half, y: my, w: half, h: targetH } })   // 右のページ
+      split++
+      if (mx > 1 || my > 1) trimmed++
+    } else if (w > targetW + TOL || h > targetH + TOL) {
+      faces.push({ page: p, crop: { x: mx, y: my, w: targetW, h: targetH } })
+      trimmed++
+    } else {
+      faces.push({ page: p, crop: null })
+    }
+  }
+  return { faces, split, trimmed }
 }
 
 /** 1ページ分を JPEG にして Buffer で返す */
@@ -172,27 +202,28 @@ for (const issue of config.issues) {
   }
 
   const info = pdfInfo(pdf)
-  const pages = info.pages
-  const crop = issue.trim === false ? null : trimBox(info)
+  const plan = issue.trim === false
+    ? { faces: info.sizes.map((_, i) => ({ page: i + 1, crop: null })), split: 0, trimmed: 0 }
+    : facePlan(info)
+  const faces = plan.faces
+  const pages = faces.length
   const dir = path.join(OUT, issue.id)
   fs.rmSync(dir, { recursive: true, force: true })
 
   process.stdout.write(`${issue.label} (${pages}ページ) `)
-  if (crop) {
-    const mm = (n) => (n * 25.4 / 72).toFixed(0)
-    process.stdout.write(`[トンボを切落し 左右${mm(crop.x)}mm 上下${mm(crop.y)}mm] `)
-  }
+  if (plan.split) process.stdout.write(`[見開き${plan.split}枚を2ページに分割] `)
+  if (plan.trimmed) process.stdout.write(`[トンボを切落し ${plan.trimmed}枚] `)
 
   // 表紙のちいさい画像（一覧用）。切り落とし後の幅が 500px くらいになる粗さで
-  sealToFile(renderPage(pdf, 1, { dpi: 60, crop }), path.join(dir, 'c.enc'))
+  sealToFile(renderPage(pdf, faces[0].page, { dpi: 60, crop: faces[0].crop }), path.join(dir, 'c.enc'))
 
   let bytes = 0
-  for (let p = 1; p <= pages; p++) {
-    const dest = path.join(dir, `p${String(p).padStart(3, '0')}.enc`)
-    sealToFile(renderPage(pdf, p, { dpi: config.dpi, crop }), dest)
+  faces.forEach((face, i) => {
+    const dest = path.join(dir, `p${String(i + 1).padStart(3, '0')}.enc`)
+    sealToFile(renderPage(pdf, face.page, { dpi: config.dpi, crop: face.crop }), dest)
     bytes += fs.statSync(dest).size
     process.stdout.write('.')
-  }
+  })
   console.log(` ${(bytes / 1024 / 1024).toFixed(1)}MB`)
 
   madeCount++
