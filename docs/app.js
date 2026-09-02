@@ -265,8 +265,13 @@
     groups.forEach(function (group) {
       var head = document.createElement('h3')
       head.className = 'year-head'
-      head.textContent = group.year + '年'
+      var chip = document.createElement('span')
+      chip.textContent = group.year + '年'
+      head.appendChild(chip)
       el.shelfGroups.appendChild(head)
+
+      var rack = document.createElement('div')
+      rack.className = 'rack'
 
       var ul = document.createElement('ul')
       ul.className = 'shelf-list'
@@ -286,7 +291,12 @@
         pages.className = 'pages'
         pages.textContent = issue.pages + 'ページ'
 
+        // 棚板を描くための場所。板そのものは下の layoutShelves() が置く
+        var slot = document.createElement('span')
+        slot.className = 'plank'
+
         btn.appendChild(cover)
+        btn.appendChild(slot)
         btn.appendChild(label)
         btn.appendChild(pages)
         btn.addEventListener('click', function () { location.hash = '#/' + issue.id })
@@ -295,8 +305,42 @@
         ul.appendChild(li)
         fillCover(issue, cover)
       })
-      el.shelfGroups.appendChild(ul)
+      rack.appendChild(ul)
+      el.shelfGroups.appendChild(rack)
     })
+
+    layoutShelves()
+    // 文字の読み込みで少しずれることがあるので、もう一度そろえる
+    setTimeout(layoutShelves, 300)
+  }
+
+  /*
+   * 本の下に、行いっぱいの棚板を置く。
+   *
+   * 表紙は画面の幅によって1行に3冊にも5冊にもなる。
+   * 板を1冊ずつ持たせると、本の少ない行だけ棚が短くなってしまうので、
+   * 「同じ高さに並んでいる表紙」を1行とみなし、その行に1枚の板を渡す。
+   */
+  function layoutShelves() {
+    var racks = el.shelfGroups.querySelectorAll('.rack')
+    for (var r = 0; r < racks.length; r++) {
+      var rack = racks[r]
+      var old = rack.querySelectorAll('.board')
+      for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i])
+
+      var rackTop = rack.getBoundingClientRect().top
+      var slots = rack.querySelectorAll('.plank')
+      var placed = {}
+      for (var j = 0; j < slots.length; j++) {
+        var top = Math.round(slots[j].getBoundingClientRect().top - rackTop)
+        if (placed[top]) continue
+        placed[top] = true
+        var board = document.createElement('span')
+        board.className = 'board'
+        board.style.top = top + 'px'
+        rack.appendChild(board)
+      }
+    }
   }
 
   // ---------- 読む ----------
@@ -441,6 +485,13 @@
   el.back.addEventListener('click', function () { location.hash = '' })
 
   // 画面の向きや大きさが変わったら本を作り直す
+  var shelfResizeTimer = null
+  window.addEventListener('resize', function () {
+    if (el.shelf.hidden) return
+    clearTimeout(shelfResizeTimer)
+    shelfResizeTimer = setTimeout(layoutShelves, 150)
+  })
+
   var resizeTimer = null
   window.addEventListener('resize', function () {
     if (el.reader.hidden || !flip) return

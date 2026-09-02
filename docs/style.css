@@ -1,15 +1,18 @@
 :root {
-  --bg: #f7f4ef;
-  --bg-warm: #f0e9df;
+  --bg: #f7f2e8;
+  --bg-warm: #f0e6d6;
   --card: #ffffff;
-  --ink: #2b2622;
+  --ink: #33291f;
   --ink-soft: #6d6259;
-  --ink-faint: #9a9088;
-  --line: #e4ddd3;
+  --ink-faint: #9a8f80;
+  --line: #e2d6c4;
   --accent: #d9613a;
   --accent-dark: #b94b27;
   --accent-soft: #f6d9cd;
   --stage: #2a2521;
+  --wood-top: #cfa273;
+  --wood-mid: #b58752;
+  --wood-low: #7b5530;
   --radius: 16px;
   --shadow-s: 0 1px 3px rgba(60, 45, 30, .10);
   --shadow-m: 0 4px 16px rgba(60, 45, 30, .12);
@@ -222,7 +225,9 @@ body {
 
 /* ---------- ② 本だな ---------- */
 
-#shelf { background: linear-gradient(180deg, var(--bg) 0%, var(--bg-warm) 100%); }
+#shelf {
+  background: radial-gradient(130% 60% at 50% -5%, #fffdf8 0%, #f7f0e4 55%, #f0e6d6 100%) fixed;
+}
 #shelf main { flex: 1; padding: 26px 20px 44px; max-width: 1040px; margin: 0 auto; width: 100%; }
 
 /* 表紙の共通の見た目（本らしく背に影を入れる） */
@@ -231,8 +236,8 @@ body {
   width: 100%;
   aspect-ratio: 1 / 1.414;
   background: #e8e2d9 center/cover no-repeat;
-  border-radius: 3px 7px 7px 3px;
-  box-shadow: var(--shadow-m);
+  border-radius: 3px 6px 6px 3px;
+  box-shadow: 0 8px 12px -7px rgba(70, 45, 20, .6), 0 1px 2px rgba(70, 45, 20, .25);
   position: relative;
   overflow: hidden;
   transition: transform .18s ease, box-shadow .18s ease;
@@ -256,15 +261,16 @@ body {
   align-items: center;
   padding: 26px;
   margin-bottom: 40px;
-  background: var(--card);
+  background: rgba(255, 255, 255, .8);
+  border: 1px solid rgba(255, 255, 255, .95);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-s);
+  box-shadow: 0 2px 10px rgba(90, 65, 35, .10);
 }
 
 .hero[hidden] { display: none; }
 
 .hero-cover { padding: 0; background: none; border: 0; cursor: pointer; }
-.hero-cover .cover { box-shadow: var(--shadow-l); }
+.hero-cover .cover { box-shadow: 0 18px 32px -14px rgba(70, 45, 20, .55); }
 .hero-cover:hover .cover { transform: translateY(-4px); }
 
 .hero-text h2 { margin: 8px 0 4px; font-size: 27px; line-height: 1.3; }
@@ -280,14 +286,24 @@ body {
 .section-head[hidden] { display: none; }
 
 .year-head {
-  margin: 26px 0 12px;
+  margin: 30px 0 16px;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: .1em;
-  color: var(--ink-faint);
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 7px;
+  letter-spacing: .12em;
 }
+
+/* 年の札。棚に貼ってある真鍮のプレートのつもり */
+.year-head span {
+  display: inline-block;
+  padding: 4px 13px;
+  border-radius: 99px;
+  color: #5c4227;
+  background: linear-gradient(180deg, #ecd9b9, #dcc39c);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 1px 2px rgba(90, 65, 35, .22);
+}
+
+/* 棚板を置くための土台 */
+.rack { position: relative; }
 
 .shelf-list {
   list-style: none;
@@ -295,7 +311,41 @@ body {
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-  gap: 24px 20px;
+  gap: 0 20px;
+  align-items: end;
+}
+
+/* 棚板のぶんの場所。板そのものは .board（app.js が置く） */
+.plank {
+  display: block;
+  height: 15px;
+  margin-bottom: 12px;
+}
+
+/*
+ * 行いっぱいに渡す棚板。
+ * 本のある所だけでなく、行の端から端まで同じ長さにする。
+ */
+.board {
+  position: absolute;
+  left: -10px;
+  right: -10px;
+  height: 15px;
+  border-radius: 2px;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--wood-top) 0%, var(--wood-mid) 40%, #956a3c 72%, var(--wood-low) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 7px 12px -6px rgba(70, 45, 20, .55);
+}
+
+/* 木目 */
+.board::after {
+  content: "";
+  display: block;
+  height: 100%;
+  opacity: .22;
+  background: repeating-linear-gradient(90deg,
+    rgba(255, 255, 255, .2) 0 2px, transparent 2px 11px,
+    rgba(0, 0, 0, .12) 11px 12px, transparent 12px 26px);
 }
 
 .shelf-item button {
@@ -311,12 +361,12 @@ body {
 }
 
 .shelf-item button:hover .cover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-l);
+  transform: translateY(-5px);
+  box-shadow: 0 16px 22px -10px rgba(70, 45, 20, .6), 0 1px 2px rgba(70, 45, 20, .25);
 }
 
-.shelf-item .label { display: block; margin-top: 11px; font-size: 13.5px; font-weight: 700; }
-.shelf-item .pages { display: block; margin-top: 1px; font-size: 11.5px; color: var(--ink-faint); }
+.shelf-item .label { display: block; font-size: 13.5px; font-weight: 700; }
+.shelf-item .pages { display: block; margin: 1px 0 30px; font-size: 11.5px; color: var(--ink-faint); }
 
 .foot { padding: 20px; text-align: center; font-size: 11px; color: var(--ink-faint); }
 
@@ -408,7 +458,8 @@ body {
   .hero-text h2 { font-size: 20px; }
   .hero-pages { margin-bottom: 14px; }
   .primary { padding: 10px 20px; font-size: 14px; }
-  .shelf-list { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px 14px; }
+  .shelf-list { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0 14px; }
+  .board { left: -8px; right: -8px; }
   #shelf main { padding: 20px 16px 36px; }
   .stage { padding: 8px; }
   .logo { font-size: 44px; }
